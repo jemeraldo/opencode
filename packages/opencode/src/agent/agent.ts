@@ -254,6 +254,14 @@ export namespace Agent {
     return state().then((x) => x[agent])
   }
 
+  export function isPrimary(agent: Pick<Info, "mode">) {
+    return agent.mode === "primary"
+  }
+
+  export function isDiscoverablePrimary(agent: Pick<Info, "mode" | "hidden">) {
+    return isPrimary(agent) && agent.hidden !== true
+  }
+
   export async function list() {
     const cfg = await Config.get()
     return pipe(
@@ -270,12 +278,12 @@ export namespace Agent {
     if (cfg.default_agent) {
       const agent = agents[cfg.default_agent]
       if (!agent) throw new Error(`default agent "${cfg.default_agent}" not found`)
-      if (agent.mode === "subagent") throw new Error(`default agent "${cfg.default_agent}" is a subagent`)
+      if (!isPrimary(agent)) throw new Error(`default agent "${cfg.default_agent}" is not a primary agent`)
       if (agent.hidden === true) throw new Error(`default agent "${cfg.default_agent}" is hidden`)
       return agent.name
     }
 
-    const primaryVisible = Object.values(agents).find((a) => a.mode !== "subagent" && a.hidden !== true)
+    const primaryVisible = Object.values(agents).find(isDiscoverablePrimary)
     if (!primaryVisible) throw new Error("no primary visible agent found")
     return primaryVisible.name
   }

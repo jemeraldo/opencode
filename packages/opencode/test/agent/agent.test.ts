@@ -29,6 +29,13 @@ test("returns default native agents when no config", async () => {
   })
 })
 
+test("isDiscoverablePrimary only includes visible primary agents", () => {
+  expect(Agent.isDiscoverablePrimary({ mode: "primary" })).toBe(true)
+  expect(Agent.isDiscoverablePrimary({ mode: "primary", hidden: true })).toBe(false)
+  expect(Agent.isDiscoverablePrimary({ mode: "subagent" })).toBe(false)
+  expect(Agent.isDiscoverablePrimary({ mode: "all" })).toBe(false)
+})
+
 test("build agent has correct default properties", async () => {
   await using tmp = await tmpdir()
   await Instance.provide({
@@ -590,7 +597,7 @@ test("defaultAgent respects default_agent config set to plan", async () => {
   })
 })
 
-test("defaultAgent respects default_agent config set to custom agent with mode all", async () => {
+test("defaultAgent throws when default_agent points to mode all agent", async () => {
   await using tmp = await tmpdir({
     config: {
       default_agent: "my_custom",
@@ -604,8 +611,7 @@ test("defaultAgent respects default_agent config set to custom agent with mode a
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const agent = await Agent.defaultAgent()
-      expect(agent).toBe("my_custom")
+      await expect(Agent.defaultAgent()).rejects.toThrow('default agent "my_custom" is not a primary agent')
     },
   })
 })
@@ -619,7 +625,7 @@ test("defaultAgent throws when default_agent points to subagent", async () => {
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      await expect(Agent.defaultAgent()).rejects.toThrow('default agent "explore" is a subagent')
+      await expect(Agent.defaultAgent()).rejects.toThrow('default agent "explore" is not a primary agent')
     },
   })
 })
@@ -676,6 +682,9 @@ test("defaultAgent throws when all primary agents are disabled", async () => {
       agent: {
         build: { disable: true },
         plan: { disable: true },
+        fallback: {
+          description: "Fallback mode-all agent",
+        },
       },
     },
   })

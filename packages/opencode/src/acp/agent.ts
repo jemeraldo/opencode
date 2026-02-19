@@ -1074,7 +1074,7 @@ export namespace ACP {
         .then((resp) => resp.data!)
 
       return agents
-        .filter((agent) => agent.mode !== "subagent" && !agent.hidden)
+        .filter((agent) => AgentModule.isDiscoverablePrimary(agent))
         .map((agent) => ({
           id: agent.name,
           name: agent.name,
